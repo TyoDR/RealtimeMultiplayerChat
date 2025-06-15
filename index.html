@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Gemini Multiplayer Chat</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&amp;display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined|Material+Icons+Round">
+    <style>
+        :root {
+            --background-color: #ffffff;
+            --surface-color: #f0f2f5;
+            --on-surface-color: #202124;
+            --on-surface-variant-color: #5f6368;
+            --primary-color: #1a73e8;
+            --system-bubble-color: #e8eaed;
+            --border-color: #e0e0e0;
+            --error-color: #d93025;
+            --success-color: #1e8e3e;
+            --font-family: 'Google Sans', sans-serif;
+            --my-message-bg: #d0e4ff;
+            --my-message-text: #0b57d0;
+            --other-message-bg: #e7ffdb;
+            --other-message-text: #054740;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--font-family); background-color: var(--background-color); }
+        .app-view { display: flex; height: 100%; width: 100%; }
+        #lobbySection { display: flex; justify-content: center; align-items: center; padding: 16px; background-color: var(--surface-color); }
+        #lobbySection > div { width: 100%; max-width: 450px; padding: 32px; border-radius: 16px; background-color: #ffffff; border: 1px solid var(--border-color); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        #lobbySection h2 { text-align: center; font-size: 1.6rem; margin-bottom: 24px; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 500; }
+        #lobbySection input[type="text"] { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem; }
+        #lobbySection button { width: 100%; padding: 12px; font-size: 1rem; border-radius: 8px; border: none; cursor: pointer; color: white; }
+        .btn-primary { background-color: var(--primary-color); }
+        .btn-secondary { background-color: var(--on-surface-variant-color); }
+        .btn-refresh { background-color: var(--success-color); }
+        #availableRoomsContainer { margin-top: 24px; border-top: 1px solid var(--border-color); padding-top: 20px;}
+        #availableRoomsList { max-height: 180px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; }
+        #availableRoomsList li { list-style-type: none; padding: 12px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        #availableRoomsList button { width: auto; padding: 6px 12px; font-size: 0.9rem; margin-left: 16px; background-color: var(--success-color); }
+        #chatRoomSection { flex-direction: column; width: 100%; height: 100%; }
+        .chat-header { padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); flex-shrink: 0; background: var(--background-color); }
+        .chat-header h2 { font-size: 1.2rem; font-weight: 500; }
+        #roomIdDisplay { background-color: #f1f3f4; padding: 4px 10px; border-radius: 16px; cursor: pointer; }
+        #leaveRoomButton { background: none; border: 1px solid var(--error-color); color: var(--error-color); padding: 6px 12px; border-radius: 16px; }
+        #chatMessages { flex-grow: 1; overflow-y: auto; padding: 16px 8px; display: flex; flex-direction: column; gap: 12px; background-color: var(--surface-color); }
+        .message-item { display: flex; flex-direction: column; max-width: 85%; }
+        .message-sender { font-size: 0.8rem; margin-bottom: 4px; color: var(--on-surface-variant-color); }
+        .message-text { padding: 10px 14px; border-radius: 18px; line-height: 1.5; word-wrap: break-word; }
+        .message-text img { display: block; max-width: 100%; border-radius: 12px; margin-bottom: 8px; }
+        .message-timestamp { font-size: 0.7rem; float: right; margin-top: 6px; margin-left: 12px; opacity: 0.8; }
+        .message-item.my-message { align-self: flex-end; }
+        .message-item.other-message, .message-item.model-message { align-self: flex-start; }
+        .message-item.my-message .message-text { background-color: var(--my-message-bg); color: var(--my-message-text); border-bottom-right-radius: 5px; }
+        .message-item.my-message .message-timestamp { color: var(--my-message-text); }
+        .message-item.model-message .message-text, .message-item.other-message .message-text { background-color: var(--other-message-bg); color: var(--other-message-text); border-bottom-left-radius: 5px; }
+        .message-item.model-message .message-timestamp, .message-item.other-message .message-timestamp { color: var(--other-message-text); }
+        .system-message { text-align: center; font-size: 0.8rem; color: var(--on-surface-variant-color); margin: 4px auto; padding: 4px 12px; background-color: var(--system-bubble-color); border-radius: 12px; }
+        .chat-input-area { background-color: var(--background-color); padding: 8px 16px 16px 16px; border-top: 1px solid var(--border-color); flex-shrink: 0; }
+        #roomUsersListContainer { font-size: 0.8rem; background-color: #f1f3f4; padding: 6px 12px; border-radius: 12px; margin-bottom: 8px; }
+        .chat-input-container { display: flex; align-items: center; gap: 8px; background-color: #f1f3f4; border-radius: 24px; padding: 6px; }
+        #prompt-input { flex-grow: 1; border: none; background: none; outline: none; padding: 8px; font-size: 1rem; resize: none; }
+        #upload-button, #send-button { background: none; border: none; cursor: pointer; padding: 8px; border-radius: 50%; color: var(--on-surface-variant-color); }
+        #send-button { background-color: var(--primary-color); color: white; }
+        #send-button:disabled { background-color: #E0E0E0; }
+        #file-input { display: none; }
+        #file-preview-container { display: none; margin-bottom: 8px; }
+    </style>
+</head>
+<body>
+    <div id="lobbySection" class="app-view">
+        <div>
+            <h2>Selamat Datang!</h2>
+            <div class="form-group"><label for="playerNameInput">Nama Anda:</label><input type="text" id="playerNameInput"></div>
+            <hr style="border:0; border-top:1px solid var(--border-color); margin:24px 0;">
+            <div class="form-group"><label for="roomNameInput">Buat Ruang Baru:</label><input type="text" id="roomNameInput"></div>
+            <button id="createRoomButton" class="btn-primary">Buat Ruang</button>
+            <div style="text-align:center; margin:16px 0;">atau</div>
+            <div class="form-group"><label for="roomIdInput">Gabung dengan ID:</label><input type="text" id="roomIdInput"></div>
+            <button id="joinRoomButton" class="btn-secondary">Gabung</button>
+            <div id="availableRoomsContainer"><h3>Ruang Tersedia:</h3><ul id="availableRoomsList"></ul><button id="refreshRoomsButton" class="btn-refresh" style="margin-top:12px;">Segarkan</button></div>
+        </div>
+    </div>
+    <div id="chatRoomSection" class="app-view">
+        <header class="chat-header">
+            <h2 id="chatRoomNameDisplay"></h2>
+            <div id="roomIdDisplay" title="Klik untuk salin"></div>
+            <button id="leaveRoomButton" title="Keluar Ruang"><span class="material-icons-outlined">logout</span></button>
+        </header>
+        <main id="chatMessages"></main>
+        <footer class="chat-input-area">
+            <div id="roomUsersListContainer">Aktif: <span id="roomUsersList"></span></div>
+            <div id="file-preview-container"><img id="file-preview" style="max-height: 50px; border-radius: 8px;" alt="Preview"><button id="remove-file-button">X</button></div>
+            <div class="chat-input-container">
+                <input type="file" id="file-input"><button id="upload-button" class="material-icons-outlined">attach_file</button>
+                <textarea id="prompt-input" placeholder="Ketik pesan..." rows="1"></textarea>
+                <button id="send-button" class="material-icons-round" disabled>send</button>
+            </div>
+        </footer>
+    </div>
+    <div id="loading-overlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.7); display:none; align-items:center; justify-content:center; z-index:1000;"><p>Memproses...</p></div>
+
+    <script>
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxrve9c4B7nQuHSZyGUrwtXifEZpnIOxaWTH_OMveFCxrNVaNwTfE2V8MjjWSBPJGWuqQ/exec";
+        const POLLING_INTERVAL_MS = 3500;
+        let currentRoomId, myPlayerName, roomPollingInterval, currentFile;
+        const el = { lobby: document.getElementById('lobbySection'), chatRoom: document.getElementById('chatRoomSection'), playerName: document.getElementById('playerNameInput'), roomName: document.getElementById('roomNameInput'), roomId: document.getElementById('roomIdInput'), createBtn: document.getElementById('createRoomButton'), joinBtn: document.getElementById('joinRoomButton'), availableRoomsList: document.getElementById('availableRoomsList'), refreshRoomsBtn: document.getElementById('refreshRoomsButton'), chatRoomName: document.getElementById('chatRoomNameDisplay'), roomIdDisplay: document.getElementById('roomIdDisplay'), leaveBtn: document.getElementById('leaveRoomButton'), chatMessages: document.getElementById('chatMessages'), roomUsers: document.getElementById('roomUsersList'), prompt: document.getElementById('prompt-input'), sendBtn: document.getElementById('send-button'), uploadBtn: document.getElementById('upload-button'), fileInput: document.getElementById('file-input'), filePreviewContainer: document.getElementById('file-preview-container'), filePreview: document.getElementById('file-preview'), removeFileBtn: document.getElementById('remove-file-button'), loadingOverlay: document.getElementById('loading-overlay') };
+        const escapeHtml = (unsafe) => unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        const scrollToBottom = () => { el.chatMessages.scrollTo({ top: el.chatMessages.scrollHeight, behavior: 'smooth' }); };
+        function showLoading(isLoading) { el.loadingOverlay.style.display = isLoading ? 'flex' : 'none'; }
+        function switchView(viewName) { el.lobby.style.display = viewName === 'lobby' ? 'flex' : 'none'; el.chatRoom.style.display = viewName === 'chat' ? 'flex' : 'none'; }
+        function updateSendButtonState() { el.sendBtn.disabled = el.prompt.value.trim() === '' && !currentFile; }
+        function handleFileSelect() { const file = el.fileInput.files[0]; if (!file) return; currentFile = file; const reader = new FileReader(); reader.onload = (e) => { el.filePreview.src = e.target.result; el.filePreviewContainer.style.display = 'block'; updateSendButtonState(); }; reader.readAsDataURL(file); }
+        function removeFile() { currentFile = null; el.fileInput.value = ''; el.filePreviewContainer.style.display = 'none'; updateSendButtonState(); }
+        async function callApi(action, payload = {}) {
+            showLoading(true);
+            try {
+                const response = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({ action, ...payload }) });
+                const result = await response.json();
+                if (!result.success) throw new Error(result.error || "Operasi gagal.");
+                return result;
+            } catch (error) { alert(`Error: ${error.message}`); return null; } finally { showLoading(false); }
+        }
+        async function fetchAvailableRooms() { const response = await callApi('getAvailableRooms'); el.availableRoomsList.innerHTML = ''; if (response?.rooms && response.rooms.length > 0) { response.rooms.forEach(room => { const li = document.createElement('li'); li.innerHTML = `<div><div>${escapeHtml(room.name)}</div><small>ID: ${room.id} • ${room.userCount} pengguna</small></div><button data-id="${room.id}">Gabung</button>`; el.availableRoomsList.appendChild(li); li.querySelector('button').addEventListener('click', () => { el.roomId.value = room.id; handleLobbyAction('join'); }); }); } else { el.availableRoomsList.innerHTML = '<li>Tidak ada ruang aktif.</li>'; } }
+        async function handleLobbyAction(actionType) { myPlayerName = el.playerName.value.trim(); if (!myPlayerName) { alert("Nama tidak boleh kosong."); return; } localStorage.setItem('chatPlayerName', myPlayerName); let payload = { playerName: myPlayerName }; if (actionType === 'create') payload.roomName = el.roomName.value.trim(); else { payload.roomId = el.roomId.value.trim().toUpperCase(); if (!payload.roomId) { alert("ID Ruang kosong."); return; }} const response = await callApi(actionType === 'create' ? 'createRoom' : 'joinRoom', payload); if (response?.roomState) { currentRoomId = response.roomState.id; updateChatRoomUI(response.roomState); switchView('chat'); startPolling(); } }
+        
+        /*******************************************************
+         * FUNGSI PENGIRIMAN PESAN DENGAN ALUR YANG DIROMBAK TOTAL
+         *******************************************************/
+        async function handleSendMessage() {
+            const promptText = el.prompt.value.trim();
+            if (!promptText && !currentFile) return; // Jangan kirim jika benar-benar kosong
+
+            // Kosongkan UI segera untuk UX yang lebih baik
+            el.prompt.value = '';
+            const fileToSend = currentFile; // Simpan file ke variabel sementara
+            removeFile();
+            updateSendButtonState();
+
+            // KASUS 1: ADA GAMBAR (apapun teksnya)
+            if (fileToSend) {
+                const reader = new FileReader();
+                reader.onload = async () => {
+                    const fileData = { base64Data: reader.result.split(',')[1], mimeType: fileToSend.type };
+                    
+                    // Langkah 1: Selalu upload gambar dulu untuk dapat fileId
+                    const uploadResponse = await callApi('uploadImage', { fileData });
+                    if (!uploadResponse || !uploadResponse.fileId) {
+                        alert("Gagal mengupload gambar. Coba lagi.");
+                        return; // Hentikan proses jika upload gagal
+                    }
+
+                    // Langkah 2: Tentukan aksi selanjutnya berdasarkan teks
+                    const command = promptText.toLowerCase().split(' ')[0];
+                    const action = (command === '/ask') ? 'askWithImage' : 'sendMessage';
+                    
+                    const response = await callApi(action, {
+                        playerName: myPlayerName,
+                        roomId: currentRoomId,
+                        messageText: promptText,
+                        fileId: uploadResponse.fileId // Kirim fileId, bukan data gambar
+                    });
+
+                    if (response?.roomState) updateChatRoomUI(response.roomState);
+                };
+                reader.readAsDataURL(fileToSend);
+
+            // KASUS 2: HANYA TEKS (TIDAK ADA GAMBAR)
+            } else {
+                const command = promptText.toLowerCase().split(' ')[0];
+                const action = (command === '/gemini') ? 'askGemini' : 'sendMessage';
+                
+                const response = await callApi(action, {
+                    playerName: myPlayerName,
+                    roomId: currentRoomId,
+                    messageText: promptText
+                });
+                if (response?.roomState) updateChatRoomUI(response.roomState);
+            }
+        }
+        
+        async function handleLeaveRoom() { if (!confirm("Yakin ingin keluar?")) return; stopPolling(); await callApi('leaveRoom', { playerName: myPlayerName, roomId: currentRoomId }); switchView('lobby'); fetchAvailableRooms(); }
+        function startPolling() { stopPolling(); const poll = async () => { const response = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({ action: 'getRoomState', roomId: currentRoomId }) }).then(r => r.json()); if (response.success && response.roomState) { updateChatRoomUI(response.roomState); } else if (!response.success && roomPollingInterval) { stopPolling(); alert("Sesi berakhir atau ruang telah dihapus."); switchView('lobby'); } }; poll(); roomPollingInterval = setInterval(poll, POLLING_INTERVAL_MS); }
+        function stopPolling() { clearInterval(roomPollingInterval); roomPollingInterval = null; }
+        function formatTimestamp(isoTimestamp) { return new Date(isoTimestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }); }
+
+        function displayMessages(messages) {
+            const shouldScroll = el.chatMessages.scrollTop + el.chatMessages.clientHeight >= el.chatMessages.scrollHeight - 50;
+            el.chatMessages.innerHTML = '';
+            messages.forEach(msg => {
+                if (msg.isSystem) { el.chatMessages.insertAdjacentHTML('beforeend', `<div class="system-message">${escapeHtml(msg.text)}</div>`); return; }
+                const senderClass = (msg.playerName === myPlayerName) ? 'my-message' : (msg.playerName.toLowerCase() === 'gemini') ? 'model-message' : 'other-message';
+                const msgDiv = document.createElement('div');
+                msgDiv.className = `message-item ${senderClass}`;
+                let imageHTML = '';
+                if (msg.attachment && msg.attachment.base64Data) { imageHTML = `<img src="data:${msg.attachment.mimeType};base64,${msg.attachment.base64Data}" alt="lampiran">`; }
+                let textHTML = `<span>${escapeHtml(msg.text)}</span>`;
+                if (msg.text === '' && msg.attachment) { textHTML = ''; }
+                msgDiv.innerHTML = `${senderClass !== 'my-message' ? `<div class="message-sender">${escapeHtml(msg.playerName)}</div>` : ''}<div class="message-text">${imageHTML}${textHTML}<div class="message-timestamp">${formatTimestamp(msg.timestamp)}</div></div>`;
+                el.chatMessages.appendChild(msgDiv);
+            });
+            if (shouldScroll) { scrollToBottom(); }
+        }
+        
+        function updateChatRoomUI(roomState) { el.chatRoomName.textContent = roomState.name; el.roomIdDisplay.textContent = `ID: ${roomState.id}`; el.roomUsers.textContent = roomState.users.map(u => u.name).join(', '); displayMessages(roomState.messages); }
+        document.addEventListener('DOMContentLoaded', () => { el.playerName.value = localStorage.getItem('chatPlayerName') || ''; switchView('lobby'); fetchAvailableRooms(); });
+        el.createBtn.addEventListener('click', () => handleLobbyAction('create'));
+        el.joinBtn.addEventListener('click', () => handleLobbyAction('join'));
+        el.refreshRoomsBtn.addEventListener('click', fetchAvailableRooms);
+        el.leaveBtn.addEventListener('click', handleLeaveRoom);
+        el.sendBtn.addEventListener('click', handleSendMessage);
+        el.prompt.addEventListener('input', () => { updateSendButtonState(); el.prompt.style.height='auto'; el.prompt.style.height=el.prompt.scrollHeight+'px'; });
+        el.uploadBtn.addEventListener('click', () => el.fileInput.click());
+        el.fileInput.addEventListener('change', handleFileSelect);
+        el.removeFileBtn.addEventListener('click', removeFile);
+        el.roomIdDisplay.addEventListener('click', () => navigator.clipboard.writeText(currentRoomId));
+    </script>
+
+</body></html>
