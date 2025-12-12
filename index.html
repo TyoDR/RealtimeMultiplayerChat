@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Gemini Multiplayer Chat</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&amp;display=swap">
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined|Material+Icons+Round">
@@ -24,10 +24,48 @@
             --other-message-text: #054740;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--font-family); background-color: var(--background-color); }
+        
+        /* PERBAIKAN 1: Gunakan dvh untuk tinggi agar pas di mobile browser & izinkan scroll jika perlu */
+        html, body { 
+            height: 100%; 
+            height: 100dvh; /* Dynamic viewport height */
+            width: 100%; 
+            overflow: hidden; 
+            font-family: var(--font-family); 
+            background-color: var(--background-color); 
+        }
+        
         .app-view { display: flex; height: 100%; width: 100%; }
-        #lobbySection { display: flex; justify-content: center; align-items: center; padding: 16px; background-color: var(--surface-color); }
-        #lobbySection > div { width: 100%; max-width: 450px; padding: 32px; border-radius: 16px; background-color: #ffffff; border: 1px solid var(--border-color); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+
+        /* PERBAIKAN 2: Lobby Section agar responsive dan tidak terpotong */
+        #lobbySection { 
+            display: flex; 
+            flex-direction: column; 
+            /* Hapus justify-content: center agar tidak memotong konten saat layar pendek */
+            /* justify-content: center; */ 
+            padding: 16px; 
+            background-color: var(--surface-color); 
+            overflow-y: auto; /* Izinkan scrolling di halaman depan */
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* PERBAIKAN 3: Gunakan margin: auto untuk centering yang aman */
+        #lobbySection > div { 
+            width: 100%; 
+            max-width: 450px; 
+            padding: 32px; 
+            border-radius: 16px; 
+            background-color: #ffffff; 
+            border: 1px solid var(--border-color); 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08); 
+            
+            /* Trik ajaib: margin auto di dalam flex container akan menengahkan item, 
+               tapi membiarkannya scroll jika layar terlalu kecil */
+            margin: auto; 
+            margin-top: max(24px, env(safe-area-inset-top)); /* Jarak aman dari atas */
+            margin-bottom: 24px;
+        }
+
         #lobbySection h2 { text-align: center; font-size: 1.6rem; margin-bottom: 24px; }
         .form-group { margin-bottom: 20px; }
         .form-group label { display: block; margin-bottom: 8px; font-weight: 500; }
@@ -40,12 +78,26 @@
         #availableRoomsList { max-height: 180px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; }
         #availableRoomsList li { list-style-type: none; padding: 12px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
         #availableRoomsList button { width: auto; padding: 6px 12px; font-size: 0.9rem; margin-left: 16px; background-color: var(--success-color); }
+        
         #chatRoomSection { flex-direction: column; width: 100%; height: 100%; }
         .chat-header { padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); flex-shrink: 0; background: var(--background-color); }
         .chat-header h2 { font-size: 1.2rem; font-weight: 500; }
         #roomIdDisplay { background-color: #f1f3f4; padding: 4px 10px; border-radius: 16px; cursor: pointer; }
         #leaveRoomButton { background: none; border: 1px solid var(--error-color); color: var(--error-color); padding: 6px 12px; border-radius: 16px; }
-        #chatMessages { flex-grow: 1; overflow-y: auto; padding: 16px 8px; display: flex; flex-direction: column; gap: 12px; background-color: var(--surface-color); }
+        
+        /* Chat Area Adjustment */
+        #chatMessages { 
+            flex-grow: 1; 
+            overflow-y: auto; 
+            padding: 16px 8px; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 12px; 
+            background-color: var(--surface-color); 
+            /* Smooth scrolling */
+            scroll-behavior: smooth;
+        }
+
         .message-item { display: flex; flex-direction: column; max-width: 85%; }
         .message-sender { font-size: 0.8rem; margin-bottom: 4px; color: var(--on-surface-variant-color); }
         .message-text { padding: 10px 14px; border-radius: 18px; line-height: 1.5; word-wrap: break-word; }
@@ -103,7 +155,9 @@
     <div id="loading-overlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.7); display:none; align-items:center; justify-content:center; z-index:1000;"><p>Memproses...</p></div>
 
     <script>
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbz7DhwZed7Mrz8bBUU6fh3MypwQVJEIqS1wltq9iZg2sMN3qWNnbFd_DL6keJoj9RR54g/exec";
+        // URL WEB APP YANG BARU SUDAH SAYA MASUKKAN DI SINI:
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbz-qeC7uSDxbSSLp0XzplMXjzBgXaxkb3apv-JQJ99Pj_EQqXRP5vw8eqD8KFm5VZ3V/exec";
+        
         const POLLING_INTERVAL_MS = 3500;
         let currentRoomId, myPlayerName, roomPollingInterval, currentFile;
         const el = { lobby: document.getElementById('lobbySection'), chatRoom: document.getElementById('chatRoomSection'), playerName: document.getElementById('playerNameInput'), roomName: document.getElementById('roomNameInput'), roomId: document.getElementById('roomIdInput'), createBtn: document.getElementById('createRoomButton'), joinBtn: document.getElementById('joinRoomButton'), availableRoomsList: document.getElementById('availableRoomsList'), refreshRoomsBtn: document.getElementById('refreshRoomsButton'), chatRoomName: document.getElementById('chatRoomNameDisplay'), roomIdDisplay: document.getElementById('roomIdDisplay'), leaveBtn: document.getElementById('leaveRoomButton'), chatMessages: document.getElementById('chatMessages'), roomUsers: document.getElementById('roomUsersList'), prompt: document.getElementById('prompt-input'), sendBtn: document.getElementById('send-button'), uploadBtn: document.getElementById('upload-button'), fileInput: document.getElementById('file-input'), filePreviewContainer: document.getElementById('file-preview-container'), filePreview: document.getElementById('file-preview'), removeFileBtn: document.getElementById('remove-file-button'), loadingOverlay: document.getElementById('loading-overlay') };
@@ -114,6 +168,7 @@
         function updateSendButtonState() { el.sendBtn.disabled = el.prompt.value.trim() === '' && !currentFile; }
         function handleFileSelect() { const file = el.fileInput.files[0]; if (!file) return; currentFile = file; const reader = new FileReader(); reader.onload = (e) => { el.filePreview.src = e.target.result; el.filePreviewContainer.style.display = 'block'; updateSendButtonState(); }; reader.readAsDataURL(file); }
         function removeFile() { currentFile = null; el.fileInput.value = ''; el.filePreviewContainer.style.display = 'none'; updateSendButtonState(); }
+        
         async function callApi(action, payload = {}) {
             showLoading(true);
             try {
@@ -123,36 +178,31 @@
                 return result;
             } catch (error) { alert(`Error: ${error.message}`); return null; } finally { showLoading(false); }
         }
+
         async function fetchAvailableRooms() { const response = await callApi('getAvailableRooms'); el.availableRoomsList.innerHTML = ''; if (response?.rooms && response.rooms.length > 0) { response.rooms.forEach(room => { const li = document.createElement('li'); li.innerHTML = `<div><div>${escapeHtml(room.name)}</div><small>ID: ${room.id} • ${room.userCount} pengguna</small></div><button data-id="${room.id}">Gabung</button>`; el.availableRoomsList.appendChild(li); li.querySelector('button').addEventListener('click', () => { el.roomId.value = room.id; handleLobbyAction('join'); }); }); } else { el.availableRoomsList.innerHTML = '<li>Tidak ada ruang aktif.</li>'; } }
         async function handleLobbyAction(actionType) { myPlayerName = el.playerName.value.trim(); if (!myPlayerName) { alert("Nama tidak boleh kosong."); return; } localStorage.setItem('chatPlayerName', myPlayerName); let payload = { playerName: myPlayerName }; if (actionType === 'create') payload.roomName = el.roomName.value.trim(); else { payload.roomId = el.roomId.value.trim().toUpperCase(); if (!payload.roomId) { alert("ID Ruang kosong."); return; }} const response = await callApi(actionType === 'create' ? 'createRoom' : 'joinRoom', payload); if (response?.roomState) { currentRoomId = response.roomState.id; updateChatRoomUI(response.roomState); switchView('chat'); startPolling(); } }
         
-        /*******************************************************
-         * FUNGSI PENGIRIMAN PESAN DENGAN ALUR YANG DIROMBAK TOTAL
-         *******************************************************/
+        // FUNGSI SEND MESSAGE UTAMA
         async function handleSendMessage() {
             const promptText = el.prompt.value.trim();
-            if (!promptText && !currentFile) return; // Jangan kirim jika benar-benar kosong
+            if (!promptText && !currentFile) return;
 
-            // Kosongkan UI segera untuk UX yang lebih baik
             el.prompt.value = '';
-            const fileToSend = currentFile; // Simpan file ke variabel sementara
+            const fileToSend = currentFile; 
             removeFile();
             updateSendButtonState();
+            
+            // Perbaikan agar tinggi textarea kembali normal setelah kirim
+            el.prompt.style.height = 'auto';
 
-            // KASUS 1: ADA GAMBAR (apapun teksnya)
+            // KASUS 1: ADA GAMBAR
             if (fileToSend) {
                 const reader = new FileReader();
                 reader.onload = async () => {
                     const fileData = { base64Data: reader.result.split(',')[1], mimeType: fileToSend.type };
-                    
-                    // Langkah 1: Selalu upload gambar dulu untuk dapat fileId
                     const uploadResponse = await callApi('uploadImage', { fileData });
-                    if (!uploadResponse || !uploadResponse.fileId) {
-                        alert("Gagal mengupload gambar. Coba lagi.");
-                        return; // Hentikan proses jika upload gagal
-                    }
+                    if (!uploadResponse || !uploadResponse.fileId) { alert("Gagal upload gambar."); return; }
 
-                    // Langkah 2: Tentukan aksi selanjutnya berdasarkan teks
                     const command = promptText.toLowerCase().split(' ')[0];
                     const action = (command === '/ask') ? 'askWithImage' : 'sendMessage';
                     
@@ -160,17 +210,21 @@
                         playerName: myPlayerName,
                         roomId: currentRoomId,
                         messageText: promptText,
-                        fileId: uploadResponse.fileId // Kirim fileId, bukan data gambar
+                        fileId: uploadResponse.fileId
                     });
-
                     if (response?.roomState) updateChatRoomUI(response.roomState);
                 };
                 reader.readAsDataURL(fileToSend);
 
-            // KASUS 2: HANYA TEKS (TIDAK ADA GAMBAR)
+            // KASUS 2: HANYA TEKS (Update: Support Reset & Gemini)
             } else {
                 const command = promptText.toLowerCase().split(' ')[0];
-                const action = (command === '/gemini') ? 'askGemini' : 'sendMessage';
+                let action = 'sendMessage'; 
+                
+                // Cek apakah user memanggil AI atau Reset
+                if (command === '/gemini' || command === '/reset') {
+                    action = 'askGemini';
+                }
                 
                 const response = await callApi(action, {
                     playerName: myPlayerName,
